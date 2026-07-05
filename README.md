@@ -31,7 +31,8 @@ pnpm web            # web: same-origin proxy (app/api/svc), no CORS
 ```
 
 Backend target = `apiBase` in `shop.config.json` (native + web proxy both read it):
-`https://shop.doehpos.com/api/v1` (prod) or `http://127.0.0.1:8000/api/v1` (local pos-shop).
+your DOEH Core base URL — issued to your shop during onboarding — or
+`http://127.0.0.1:8000/api/v1` (local pos-shop).
 
 ## White-label swap (the value prop)
 

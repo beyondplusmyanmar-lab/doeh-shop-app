@@ -1,0 +1,12 @@
+{
+  "_comment": "The single-shop 'key': this config pins the app to ONE shop. Swap shopCode/environment/publishableKey per clone. apiBase = Core-direct (auth + not-yet-published routes); edgeApiBase + publishableKey = the public edge plane (W2) — the pk is publishable by design (it grants nothing without the customer's login) and pins the app to its shop SERVER-side. Omit edgeApiBase/publishableKey to run fully Core-direct (pre-W2 behavior).",
+  "shopCode": "MM-DEMO-0001",
+  "environment": "test",
+  "apiBase": "http://127.0.0.1:8000/api/v1",
+  "edgeApiBase": "https://sandbox-api.doehpos.com/v1",
+  "publishableKey": "pk_test_VHqjh2RawTjJYszY_HthfudsWp2yIqih5uwiMnQkoPLjKZER7oUb8Vrrc862",
+  "brand": {
+    "name": "Demo Coffee Rewards",
+    "primary": "#C8895A"
+  }
+}

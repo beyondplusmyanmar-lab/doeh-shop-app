@@ -5,6 +5,14 @@
   "apiBase": "http://127.0.0.1:8000/api/v1",
   "edgeApiBase": "https://sandbox-api.doehpos.com/v1",
   "publishableKey": "pk_test_VHqjh2RawTjJYszY_HthfudsWp2yIqih5uwiMnQkoPLjKZER7oUb8Vrrc862",
+  "auth": {
+    "_comment": "DOEH Identity Platform (hosted OAuth 2.1 + PKCE). Only issuer + clientId are set; endpoints are discovered from the issuer. Sandbox values here; override per env with EXPO_PUBLIC_AUTH_ISSUER / EXPO_PUBLIC_AUTH_CLIENT_ID. clientId is a public identifier (the pk above already pins this clone to sandbox).",
+    "issuer": "https://auth-sandbox.doehpos.com",
+    "clientId": "app_0ZIjGrfyuFTgpGZK7sLqacAL",
+    "scopes": ["loyalty:read"],
+    "redirectScheme": "shoployalty",
+    "redirectPath": "oauth/callback"
+  },
   "brand": {
     "name": "Demo Coffee Rewards",
     "primary": "#C8895A"

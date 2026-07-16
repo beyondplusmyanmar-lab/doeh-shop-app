@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { router } from "expo-router";
 import { API_BASE, SHOP, SHOP_CODE } from "@/config/shop";
 import { publishableKeyProvider } from "./plane";
-import { session } from "@/store/session";
+import { authHeaders, tokenStore } from "@/auth";
 
 // Native talks to Core directly (no CORS on native). Web goes through the
 // same-origin proxy (app/api/svc) so the browser never makes a cross-origin
@@ -18,7 +18,10 @@ const edge = publishableKeyProvider(SHOP);
 // ONE shop — via the pk on the edge plane, via X-Shop-Code Core-direct — and
 // authed with the customer's token.
 export async function api(method: string, path: string, body?: unknown) {
-  const token = await session.get();
+  // Auth headers come from the ONE abstraction (auth/authHeaders): a transparently-refreshed
+  // token, and the seam where Phase B attaches a DPoP proof. Absent => anonymous request.
+  const auth = await authHeaders();
+  const authed = "Authorization" in auth;
   const viaEdge = edge.serves(path);
   // Web always stays same-origin; the proxy re-derives this same decision
   // server-side from the same config. Native picks the transport here.
@@ -27,16 +30,15 @@ export async function api(method: string, path: string, body?: unknown) {
     "Content-Type": "application/json",
     Accept: "application/json",
     ...(viaEdge ? edge.headers() : { "X-Shop-Code": SHOP_CODE }),
+    ...auth,
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${base}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   let data: any = null;
   try { data = await res.json(); } catch {}
-  // Session expired / stale token (e.g. after switching backend env): drop the dead
-  // token and bounce to login. Skip the login call itself (it never 401s, but guard
-  // against a redirect loop).
-  if (res.status === 401 && token && !path.startsWith("/mobile/auth/login")) {
-    await session.clear();
+  // Session dead at the server (revoked/expired-and-unrefreshable): drop the local set and
+  // bounce to login. getValidAccessToken already refreshed if it could, so a 401 here is final.
+  if (res.status === 401 && authed && !path.startsWith("/mobile/auth/login")) {
+    await tokenStore.clear();
     try { router.replace("/"); } catch {}
   }
   return { status: res.status, data };

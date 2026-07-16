@@ -1,43 +1,62 @@
-import React, { useState } from "react";
-import { View } from "react-native";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { login } from "@/api/auth";
+import { signIn, isAuthenticated, authConfigured } from "@/auth";
 import { SHOP_CODE, BRAND } from "@/config/shop";
-import { Screen, Card, Title, Muted, Body, Field, Button, c } from "@/components/ui";
+import { Screen, Card, Title, Muted, Body, Button, c } from "@/components/ui";
 
-// Dev-only prefill: set EXPO_PUBLIC_DEMO_EMAIL / EXPO_PUBLIC_DEMO_PASSWORD in a
-// gitignored .env — credentials must never be hardcoded in source.
-const DEMO_EMAIL = process.env.EXPO_PUBLIC_DEMO_EMAIL ?? "";
-const DEMO_PASSWORD = process.env.EXPO_PUBLIC_DEMO_PASSWORD ?? "";
-
+// Phase A — hosted OAuth 2.1 + PKCE. The app never sees the customer's credentials: it opens the
+// DOEH-hosted login in the system browser and receives tokens back. (Email+password sign-in is
+// retired; the DIP hosted flow owns authentication.)
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState(DEMO_EMAIL);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [err, setErr] = useState("");
 
-  const onLogin = async () => {
-    setBusy(true); setErr("");
+  // Session restore: if a valid (or refreshable) session already exists, skip straight in.
+  useEffect(() => {
+    (async () => {
+      try {
+        if (await isAuthenticated()) router.replace("/loyalty");
+      } finally {
+        setChecking(false);
+      }
+    })();
+  }, [router]);
+
+  const onSignIn = async () => {
+    setBusy(true);
+    setErr("");
     try {
-      const r = await login(email.trim(), password);
+      const r = await signIn();
       if (r.ok) router.replace("/loyalty");
-      else setErr(r.raw?.message || `Sign in failed (HTTP ${r.status}).`);
-    } catch (e: any) { setErr(e?.message || "Network error"); }
-    finally { setBusy(false); }
+      else if (r.error !== "cancelled" && r.error !== "dismissed") {
+        setErr(`Sign in failed (${r.error}).`);
+      }
+    } catch (e: any) {
+      setErr(e?.message || "Network error");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  return (<Screen>
-    <Card>
-      <Title>{BRAND.name}</Title>
-      <Muted>Sign in to view your rewards at this shop ({SHOP_CODE}).</Muted>
-    </Card>
-    <Card>
-      <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@email.com" />
-      <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
-      {err ? <Body color={c.bad}>{err}</Body> : null}
-      <Button title="Sign in" onPress={onLogin} loading={busy} />
-      {DEMO_EMAIL ? <Muted>Demo: {DEMO_EMAIL}</Muted> : null}
-    </Card>
-  </Screen>);
+  return (
+    <Screen>
+      <Card>
+        <Title>{BRAND.name}</Title>
+        <Muted>Sign in to view your rewards at this shop ({SHOP_CODE}).</Muted>
+      </Card>
+      <Card>
+        {!authConfigured() ? (
+          <Body color={c.bad}>Sign-in is not configured for this build.</Body>
+        ) : (
+          <>
+            <Body>You&apos;ll sign in on a secure DOEH page — this app never sees your password.</Body>
+            {err ? <Body color={c.bad}>{err}</Body> : null}
+            <Button title="Sign in" onPress={onSignIn} loading={busy || checking} />
+          </>
+        )}
+      </Card>
+    </Screen>
+  );
 }

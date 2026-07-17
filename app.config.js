@@ -7,6 +7,7 @@ module.exports = {
     version: "0.1.0",
     orientation: "portrait",
     userInterfaceStyle: "automatic",
+    android: { package: "com.doehpos.shoployalty" },
     plugins: ["expo-router"],
     extra: { shop },
     web: { bundler: "metro", output: "server" },

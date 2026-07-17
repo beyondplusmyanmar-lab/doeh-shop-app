@@ -34,6 +34,20 @@ Backend target = `apiBase` in `shop.config.json` (native + web proxy both read i
 your DOEH Core base URL — issued to your shop during onboarding — or
 `http://127.0.0.1:8000/api/v1` (local pos-shop).
 
+> **Expo Go limitation:** hosted **sign-in does not work in Expo Go** — the OAuth redirect
+> requires the app to own the `shoployalty://` scheme, which only a standalone build does.
+> Everything else runs in Expo Go; to test sign-in on a device, install a real build.
+
+## Device build (EAS)
+
+```bash
+EXPO_TOKEN=... npx eas-cli build --platform android --profile preview   # installable APK
+```
+
+Profiles live in [`eas.json`](./eas.json) (`preview` = release APK for direct install,
+`development` = dev client). Install the APK from the build page link on the phone —
+no laptop or Play Store needed.
+
 ## White-label swap (the value prop)
 
 Edit `shop.config.json` → `shopCode` + `brand`, and it's a different shop's app.
@@ -49,7 +63,10 @@ Edit `shop.config.json` → `shopCode` + `brand`, and it's a different shop's ap
 - `pnpm smoke:consumer` proves the public consumer plane against the live sandbox edge —
   credential-free it asserts the auth gate + typed error ABI; with `DOEH_CUSTOMER_TOKEN`
   it drives the authenticated loyalty reads (redeem is opt-in via `SMOKE_REDEEM_POINTS`).
-- **Auth model:** the in-app email+password login is **first-party only** (DOEH deploys
-  the app). For **clone-and-own** publishing, the shop must never collect the customer's
-  credential — auth moves to a **DOEH-hosted OAuth/PKCE** flow (`pk_` = client id, app
-  gets a shop-scoped token). See [`docs/ADR-001` §W2](./docs/ADR-001-consumer-public-surface.md).
+- **Auth model:** sign-in is the **DOEH-hosted OAuth 2.1 + PKCE** flow (Phase A, bearer) —
+  the app never sees the customer's credential. Config lives in `shop.config.json` → `auth`
+  (issuer + `clientId` only; every endpoint is discovered from the issuer). The redirect is
+  `shoployalty://oauth/callback` and must be pre-registered on the client. Tokens are kept
+  as one record in `src/auth/tokenStore.ts`; refresh is single-flight (the AS rotates
+  refresh tokens one-time-use). Phase B (DPoP / hardware-bound keys) slots into the same
+  seams later. See [`docs/ADR-001` §W2](./docs/ADR-001-consumer-public-surface.md).
